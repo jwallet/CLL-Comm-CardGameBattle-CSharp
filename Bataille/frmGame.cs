@@ -22,13 +22,16 @@ namespace Bataille
         //animation
         private Point m_LocalDraw, m_OppDraw;
         private bool m_Bataille;
+        private string m_MessageOnScreen;
         private Point m_LocalDrawPoint = new Point(152, 388);
         private Point m_OppDrawPoint = new Point(234, -144);
+        private bool m_CardVisibleFalse;
         //delegate
         internal delegate void SerialDataReceivedEventHandlerDelegate(object sender, SerialDataReceivedEventArgs e);
         internal delegate void SerialPinChangedEventHandlerDelegate(object sender, SerialPinChangedEventArgs e);
-        private delegate void SetTextCallback(string texte);
-        private delegate void SetBoolCallback(bool valeur);  
+        private delegate void SetTextCallback(string text);
+        private delegate void SetBoolCallback(bool valeur);
+        private delegate void SetTimerCallback();
         
         public frmGame()
         {
@@ -38,133 +41,199 @@ namespace Bataille
             m_Port = new CPort();
             m_Score = new CScore();
             m_Bataille = false;
-            //m_Deck.Random();
+            m_MessageOnScreen = null;
             m_Port.ON();
-            if(m_Port.SelectedPort!="COM")
-            { tmrWaiting4Player.Start(); }
             m_Data.DataReceived = null;
             CheckForIllegalCrossThreadCalls = true;
-            m_Port.SP.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(SP_DataReceived);                    
+            m_Port.SP.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(SP_DataReceived);
             InvalidateCardOpp();
             InvalidateCardLocal();
+            if (m_Port.SelectedPort != "COM") { m_Data.LT0_ONLINE = 1; m_Data.LT1_ORDER_STATUS = 0; DataBuildTasks(); } //send waiting
         }
         private void SP_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            Thread.Sleep(50);
+            Thread.Sleep(200);
+            string SaveDataOnError;
             m_Data.DataReceived = m_Port.SP.ReadExisting();
-            if (m_Data.DataReceived != "")
+            SaveDataOnError = m_Data.DataReceived;
+            while (m_Data.DataReceived != "")
             {
-               //**************************************************** this.BeginInvoke(new SetTextCallback(SetText), new object[] { m_Data.DataReceived });
-                //Lancer methode analisation de la trame recu
-                //Lancer methode ANALYSE DES INDEX pour executer les ordres et interprete les. (ex: dessiner une carte)
-                m_Data.DataReceived_Analyze();                    
-                if (tmrWaiting4Player.Enabled == false && m_Data.OT0_ONLINE==1)
+                m_Data.DataReceived_Analyze();
+                if (m_Data.OT0_ONLINE == 1)
                 {
                     m_Data.LT0_ONLINE = 1;
-                    if (m_Data.OT1_ORDER_STATUS == 0 || m_Data.OT1_ORDER_STATUS == 1)
+                    if (m_Data.OT1_ORDER_STATUS >= 0 && m_Data.OT1_ORDER_STATUS <= 2)
                         GetItStarted();
-                    else if (m_Data.OT1_ORDER_STATUS == 2)
+                    else if (m_Data.OT1_ORDER_STATUS == 3)
                         DataReadTasks();
-                }                    
+                }
+                else if (m_Data.OT0_ONLINE == 2)
+                    DataReadTasks();
+                else if(m_Data.OT0_ONLINE == 0)
+                    this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "ERROR" });                                    
             }
-        }
-        private void MessageStarting(string text){lblMessage.Text = text;}
-        private void MessageWait(string text) { lblMessage.Text = text; }
-        private void MessageClickCard(string text) { lblMessage.Text = text; }
+       }
+        private void MessageOnScreen(string text) { lblMessage.Text = text; m_MessageOnScreen = text; }
         private void EnableMove(bool valeur) { pnlLocalDraw.Enabled = valeur; }
+        private void VisibleMessage(bool valeur) { lblMessage.Visible = valeur; }
+        private void StartOpponentMove() { tmrAnimationOpponent.Start(); }
+        private void MessageHoldPoints(string text) { lblTitleHoldingPoints.Text = text; }
+        private void MessageMyPointsPlus(string text) { lblMyPointsPlus.Text = text; }
+        private void MessageHisPointsPlus(string text) { lblHisPointsPlus.Text = text; }
+        private void MessageMyPoints(string text) { lblMyPoints.Text = text; }
+        private void MessageHisPoints(string text) { lblHisPoints.Text = text; }
+        private void VisibleMyCard(bool valeur) { pnlLocalCard.Visible = valeur; }
+        private void VisibleHisCard(bool valeur) { pnlOpponentCard.Visible = valeur; }
+        private void label1(string text) { lblaffichage.Text = text; }
         private void GetItStarted()
         {
-            int ret;
-            if (m_Data.LT1_ORDER_STATUS == 1) //si rollthedice
-            {
-                {
-                    m_Deck.RollTheDice();
-                    DataBuildTasks();
-                    m_Data.LT1_ORDER_STATUS = 2;
-                    return;
-                }
-            }
-
+            int ret=-1;
             if (m_Data.OT1_ORDER_STATUS == 0)//il attend joueur
             {
-                //connection made, now roll the dice
-                m_Data.LT1_ORDER_STATUS = 1; //status roll the dice = 1
-                //m_Data.DataReceived = ""; //clear les requetes de connexion du timer ?BAAAAAA:B? demander qui surcharge datareceive
-                //puisque la connexion est etablie, continuer avec une nouvelle requete sans timer
-                this.BeginInvoke(new SetTextCallback(MessageStarting), new object[] { "STARTING" });                
+                m_Data.LT1_ORDER_STATUS = 1; //connection made,status roll the dice = 1
+                this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "PLAYER FOUND" });                
                 DataBuildTasks();
                 return;
             }
-            else if (m_Data.OT1_ORDER_STATUS == 1)//si rollthedice
+            else if (m_Data.OT1_ORDER_STATUS == 1 || m_Data.OT1_ORDER_STATUS == 2)//si rollthedice ou pret a jouer
             {
-                ret = m_Deck.AnalyseRolledNumber_0Lose_1Win_2Tied(m_Data.OT6_ROLLED_NUMBER_TO_START);
-                if (ret == 2)
+                if(m_Data.LT1_ORDER_STATUS==0)
                 {
                     m_Data.LT1_ORDER_STATUS = 1;
-                }
-                else if (ret == 1)
-                {
-                    this.BeginInvoke(new SetTextCallback(MessageClickCard), new object[] { "CLICK CARD" });
-                    //Win = pile
-                    this.BeginInvoke(new SetBoolCallback(EnableMove), new object[] { true });
-                    m_Data.LT1_ORDER_STATUS = 2;
-                    m_Data.PlayerSwitcher = true;
+                    this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "PLAYER FOUND" });   
                     DataBuildTasks();
                     return;
                 }
-                else
+                else if (m_Data.LT1_ORDER_STATUS == 1||m_Data.LT1_ORDER_STATUS==2)//rollthedice
                 {
-                    this.BeginInvoke(new SetTextCallback(MessageWait), new object[] { "WAIT" });
-                    //Lose = face
-                    m_Data.LT1_ORDER_STATUS = 2;
-                    m_Data.PlayerSwitcher = false;
-                    DataBuildTasks();
-                    return;
+                    if (m_Data.LT1_ORDER_STATUS == 2 && m_Data.OT1_ORDER_STATUS == 2)
+                    {
+                        DataToSend();
+                        m_Data.LT1_ORDER_STATUS = 3;
+                        m_Data.OT1_ORDER_STATUS = 3;
+                        if(m_Data.LT2_PLAYER_SWITCHER==1)
+                        {
+                            this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "PLAY" });
+                            Thread.Sleep(800); //affichage Play
+                            this.BeginInvoke(new SetBoolCallback(VisibleMessage), new object[] { false });
+                            this.BeginInvoke(new SetBoolCallback(EnableMove), new object[] { true });
+                        }
+                        else
+                        {
+                            this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "WAIT" });
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        ret = m_Deck.AnalyseRolledNumber_0Lose_1Win_2Tied(m_Data.OT6_ROLLED_NUMBER_TO_START);
+                        if (ret == 2)
+                        {
+                            m_Deck.RollTheDice();
+                            m_Data.LT1_ORDER_STATUS = 1;
+                            DataBuildTasks();
+                            return;
+                        }
+                        else if (ret == 1)
+                        {
+                            m_Data.PlayerSwitcher = true;
+                            m_Data.LT1_ORDER_STATUS = 2;
+                            DataToSend();                          
+                            return;
+                        }
+                        else
+                        {
+                            m_Data.PlayerSwitcher = false;
+                            m_Data.LT1_ORDER_STATUS = 2;
+                            DataToSend();
+                            return;
+                        }
+                    }
                 }
             }
         }
         private void DataReadTasks()
         {
-            //chaque etape doit construire une trame (DATA.Builder) et puis l'envoyer une trame (PORT.SP.WRITE(datasent))
-            //1er: verifier si empty = tout a 0 = erreur, terminer
-            //2eme : verifier si online 1:yes 2:no
-            //3eme : verifier si le De est actif, si oui juste prend index[7] pour le #
-            //4eme : verifier si index[1] = 4, continuer, partie en jeux, voir les autres index[] pour la carte
-            
-            if(m_Data.OT0_ONLINE==2)//offline
+            if (m_Data.OT0_ONLINE == 2)//offline ou game over
             {
-                //Quoi faire si deconnecte
                 m_Data.Disconnect = true;
-                //game over
-                
+                this.BeginInvoke(new SetBoolCallback(VisibleMessage), new object[] { true });
+                this.BeginInvoke(new SetBoolCallback(EnableMove), new object[] { false });
+                this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "PLAYER LEFT" });
+                Thread.Sleep(1000);
+                this.BeginInvoke(new SetTextCallback(MessageOnScreen), new object[] { "YOU WIN" });
+                m_Port.OFF();
             }
             else if (m_Data.OT0_ONLINE == 1) //online, keep playing
             {
-                //do this
-                if(m_Data.OT1_ORDER_STATUS==2)//make sure it is set on playing
+                if (m_Data.OT1_ORDER_STATUS == 3)//make sure it is set on playing
                 {
-                    if(m_Data.OT2_PLAYER_SWITCHER != m_Data.LT2_PLAYER_SWITCHER) //my turn
+                    if (m_Data.OT2_PLAYER_SWITCHER != m_Data.LT2_PLAYER_SWITCHER) //opponent turn to flip his card
                     {
-                        tmrAnimationOpponent.Start();
+                        m_Deck.OpponentCard = new SCard(m_Data.OT4_CARD_SUIT, m_Data.OT5_CARD_NUMBER);
+                        this.BeginInvoke(new SetTimerCallback(StartOpponentMove));
+                    }
+                    
+                }
+            }
+        }
+        private void ValidationWinOrLose()
+        {
+            m_Deck.NumberCardsPlayed++;
+            this.BeginInvoke(new SetTextCallback(label1), new object[] { m_Deck.NumberCardsPlayed.ToString() });
+            string Result;
+
+            if (m_Deck.NumberCardsPlayed % 2 == 0 && m_Deck.NumberCardsPlayed>1)
+            {
+
+                Result = m_Deck.UpdateScoreByComparingMyCardTo(m_Deck.OpponentCard);
+                this.BeginInvoke(new SetTextCallback(MessageHoldPoints), new object[] { "BATTLE ZONE" });
+                if (Result == "Hold")
+                {
+                    m_Score.Hold();
+                    //memoire la carte bataille
+                    //bool mode bataille
+                    this.BeginInvoke(new SetTextCallback(MessageHisPointsPlus), new object[] { "" });
+                    this.BeginInvoke(new SetTextCallback(MessageMyPointsPlus), new object[] { "" });
+                    this.BeginInvoke(new SetTextCallback(MessageHoldPoints), new object[] { "HOLD ON " + m_Score.HoldPoints + " PTS" });
+                    m_CardVisibleFalse = false;
+                }
+                else
+                {
+                    m_CardVisibleFalse = true;
+                    //this.BeginInvoke(new SetBoolCallback(VisibleMyCard), new object[] { false });
+                    //this.BeginInvoke(new SetBoolCallback(VisibleHisCard), new object[] { false });
+                    if (Result == "Win")
+                    {
+                        m_Score.Win();
+                        m_Deck.BattleCardToBeat = -1;
+                        this.BeginInvoke(new SetTextCallback(MessageMyPointsPlus), new object[] { (m_Score.Plus2 + m_Score.HoldPoints).ToString() });
+                        this.BeginInvoke(new SetTextCallback(MessageMyPoints), new object[] { m_Score.Local.ToString() });
+                        this.BeginInvoke(new SetTextCallback(MessageHisPointsPlus), new object[] { "" });
+                    }
+                    else if (Result == "Lose")
+                    {
+                        m_Score.Lose();
+                        m_Deck.BattleCardToBeat = -1;
+                        this.BeginInvoke(new SetTextCallback(MessageHisPointsPlus), new object[] { (m_Score.Plus2 + m_Score.HoldPoints).ToString() });
+                        this.BeginInvoke(new SetTextCallback(MessageHisPoints), new object[] { m_Score.Opponent.ToString() });
+                        this.BeginInvoke(new SetTextCallback(MessageMyPointsPlus), new object[] { "" });
                     }
                 }
-
+                
             }
         }
 
         //METHODE QUI construit une trame
         private void DataBuildTasks()
         {
-            if(m_Data.LT0_ONLINE==2) //offline
-            {
+            if(m_Data.LT0_ONLINE==2) //offline ou gameover
                 DataToSend();
-            }
             else if(m_Data.LT0_ONLINE==1) //online
             {
-                if(m_Data.LT1_ORDER_STATUS==2)//jouer
+                if(m_Data.LT1_ORDER_STATUS==3)//jouer
                 {
                     m_Data.LT3_NUMBER_CARDS_PLAYED = m_Deck.NumberCardsPlayed;
-                    //m_Data.LT3_NUMBER_CARDS_ON_TABLE = 0; //surement inutile
                     m_Data.LT4_CARD_SUIT = m_Deck.LocalCard.Symbol;
                     m_Data.LT5_CARD_NUMBER = m_Deck.LocalCard.Number;
                     DataToSend();
@@ -174,39 +243,28 @@ namespace Bataille
                     m_Data.LT6_ROLLED_NUMBER_TO_START = m_Deck.RolledNumber;
                     DataToSend();
                 }
-                else if(m_Data.LT1_ORDER_STATUS==0)//attente
-                {
+                else if(m_Data.LT1_ORDER_STATUS==0 || m_Data.LT1_ORDER_STATUS == 2)//attente ou pretajouer
                     DataToSend();//waiting for players
-                }
-                
             }
-            //else = 0 = error
-            
         }
         //methode qui envoie une trame
         private void DataToSend()
         {
             byte[] DataBuffer = new byte[11];
-            //m_Data.DataReceived = "";
             m_Data.DataToSend_Builder();
-            //m_Port.SP.Write(m_Data.DataToSend);
             for(int i=0;i<m_Data.DataToSend.Length;i++)
-            {
                 DataBuffer[i] = (byte)m_Data.DataToSend[i];
-            }
             m_Port.SP.Write(DataBuffer, 0, 11);
         }
 
         private void NewAction()
         {
             m_Deck.Random(); //genere la carte
-            m_Data.LT0_ONLINE = 1;
-            m_Data.LT1_ORDER_STATUS = 2;
-//peut etre va falloir le mettre une variable bool pour quand l'autre recoit son datareceived y check si c'est son tour
-            m_Data.PlayerSwitcher = (!(m_Data.PlayerSwitcher));
-            m_Data.TotalCardsDrawn = 1;
-            m_Data.LT4_CARD_SUIT = m_Deck.LocalCard.Symbol;
-            m_Data.LT5_CARD_NUMBER = m_Deck.LocalCard.Number;
+            m_Data.LT0_ONLINE = 1;//online
+            m_Data.LT1_ORDER_STATUS = 3;//playing a card
+            m_Data.TotalCardsDrawn = 1;//accumulate played cards
+            m_Data.LT4_CARD_SUIT = m_Deck.LocalCard.Symbol; //card symbol
+            m_Data.LT5_CARD_NUMBER = m_Deck.LocalCard.Number; //card number
             DataBuildTasks();
         }
         private void frmGame_FormClosing(object sender, FormClosingEventArgs e)
@@ -214,9 +272,7 @@ namespace Bataille
             if(m_Port.SP.IsOpen)
             {
                 m_Data.Disconnect = true;
-                m_Data.LT0_ONLINE = 2;
                 DataBuildTasks();
-                //Lancer methode ANALYSE DES INDEX
             }            
         }
         
@@ -224,13 +280,10 @@ namespace Bataille
         private void pnlLocalDraw_MouseClick(object sender, MouseEventArgs e)
         {
             lblMessage.Visible = false;
-            if (m_Bataille == false)
-            {
-                pnlOpponentCard.Visible = false;
-                pnlLocalCard.Visible = false;
-            }
+            lblArrow.Visible = false;
             pnlLocalDraw.Enabled = false;
             pnlLocalDraw.Location = m_LocalDrawPoint;
+            
             tmrAnimationLocal.Start();
             NewAction();
         }
@@ -241,7 +294,9 @@ namespace Bataille
             if (m_Port.SelectedPort != "COM")
             {
                 m_Port.ON();
-                tmrWaiting4Player.Start(); 
+                m_Data.LT0_ONLINE = 1; 
+                m_Data.LT1_ORDER_STATUS = 0; 
+                DataBuildTasks(); //send waiting
             }
         }
         private void pnlLocalCard_Paint(object sender, PaintEventArgs e)
@@ -254,16 +309,25 @@ namespace Bataille
         private void pnlOpponentCard_Paint(object sender, PaintEventArgs e)
         {
             Graphics GraphicOpponent;
-            m_Deck.OpponentCard = new SCard(m_Data.OT4_CARD_SUIT, m_Data.OT5_CARD_NUMBER);
             GraphicOpponent = e.Graphics;
             m_Deck.Draw(GraphicOpponent, m_Deck.OpponentCard, pnlOpponentCard.Width, pnlOpponentCard.Height);
         }
 
         private void tmrAnimationOpponent_Tick(object sender, EventArgs e)
         {
-            m_OppDraw.Y += 10;
+            m_OppDraw.Y += 20;
             pnlOpponentDraw.Location = m_OppDraw;
             pnlOpponentDraw.Invalidate();
+            if (m_CardVisibleFalse == false && m_Deck.NumberCardsPlayed % 2 == 0 && m_Deck.NumberCardsPlayed > 1)
+            {
+                pnlLocalCard.Visible = true;
+                pnlOpponentCard.Visible = true;
+            }
+            else if (m_CardVisibleFalse == true && m_Deck.NumberCardsPlayed % 2 == 0 && m_Deck.NumberCardsPlayed > 1)
+            {
+                pnlLocalCard.Visible = false;
+                pnlOpponentCard.Visible = false;
+            }
             if (pnlOpponentDraw.Location.Y == pnlOpponentCard.Location.Y)
             {
                 Thread.Sleep(300);
@@ -272,15 +336,35 @@ namespace Bataille
                 pnlOpponentCard.Visible = true;
                 pnlOpponentDraw.Visible = true;
                 pnlLocalDraw.Enabled = true;
-                tmrAnimationOpponent.Stop();                
+                lblMessage.Visible = false;
+                tmrAnimationOpponent.Stop();
+                ValidationWinOrLose();
+                //if(m_Data.PlayerSwitcher==true)
+                //{
+                //    if (m_Bataille == false)
+                //    {
+                //        pnlOpponentCard.Visible = false;
+                //        pnlLocalCard.Visible = false;
+                //    }
+                //}
             }
         }
 
         private void tmrAnimationLocal_Tick(object sender, EventArgs e)
         {
-            m_LocalDraw.Y -= 10;
+            m_LocalDraw.Y -= 20;
             pnlLocalDraw.Location = m_LocalDraw;
             pnlLocalDraw.Invalidate();
+            if (m_CardVisibleFalse == false && m_Deck.NumberCardsPlayed % 2 == 0 && m_Deck.NumberCardsPlayed > 1)
+            {
+                pnlLocalCard.Visible = true;
+                pnlOpponentCard.Visible = true;
+            }
+            else if (m_CardVisibleFalse == true && m_Deck.NumberCardsPlayed % 2 == 0 && m_Deck.NumberCardsPlayed > 1)
+            {
+                pnlLocalCard.Visible = false;
+                pnlOpponentCard.Visible = false;
+            }
             if (pnlLocalDraw.Location.Y == pnlLocalCard.Location.Y)
             {                
                 Thread.Sleep(300);           
@@ -288,17 +372,21 @@ namespace Bataille
                 InvalidateCardLocal();
                 pnlLocalCard.Visible = true;
                 pnlLocalDraw.Visible = true;
+                lblMessage.Text = "WAIT";
+                lblMessage.Visible = true;
                 tmrAnimationLocal.Stop();
+                ValidationWinOrLose();
             }            
         }
 
 
         private void frmGame_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (e.KeyChar != 032)
+            if (e.KeyChar != 032 && lblMessage.Visible == false)
             {
-                lblMessage.Text = "CLICK CARD";
+                lblMessage.Text = "CLICK HERE";
                 lblMessage.Visible = true;
+                lblArrow.Visible = true;                
             }
         }
 
@@ -319,33 +407,15 @@ namespace Bataille
             if (pnlLocalDraw.Location == m_LocalDrawPoint)
             {
                 pnlLocalDraw.Location = new Point(152, 368);
+                if (lblArrow.Visible == true)
+                    lblArrow.Location = new Point(190, 325);
             }
         }
 
         private void pnlLocalDraw_MouseLeave(object sender, EventArgs e)
         {
             pnlLocalDraw.Location = m_LocalDrawPoint;
-        }
-
-        private void tmrWaiting4Player_Tick(object sender, EventArgs e)
-        {
-            if (m_Data.DataReceived == null)
-            {
-                if (m_Port.SelectedPort != "COM")
-                {
-                    m_Data.LT0_ONLINE = 1;
-                    if (m_Data.LT1_ORDER_STATUS == 0)
-                        DataBuildTasks(); //send im waiting for connection...every 1sec
-                }
-            }
-            else
-            {
-                m_Data.LT1_ORDER_STATUS = 1;
-                DataBuildTasks();//******************************************************
-                tmrWaiting4Player.Stop();
-            }
-
-                
+            lblArrow.Location = new Point(190, 345);
         }
     }
 }

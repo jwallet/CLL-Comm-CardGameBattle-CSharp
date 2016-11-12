@@ -42,15 +42,14 @@
             this.lblNone = new System.Windows.Forms.Label();
             this.lblMyPoints = new System.Windows.Forms.Label();
             this.lblMyPointsPlus = new System.Windows.Forms.Label();
-            this.lblHisPointsPlus = new System.Windows.Forms.Label();
-            this.lblBataille = new System.Windows.Forms.Label();
             this.lblAlert = new System.Windows.Forms.Label();
             this.lblMessage = new System.Windows.Forms.Label();
             this.lblMyPointsPlusSymbol = new System.Windows.Forms.Label();
             this.lblHisPointsPlusSymbol = new System.Windows.Forms.Label();
             this.lblTitleHoldingPoints = new System.Windows.Forms.Label();
-            this.tmrWaiting4Player = new System.Windows.Forms.Timer(this.components);
-            this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
+            this.lblArrow = new System.Windows.Forms.Label();
+            this.lblHisPointsPlus = new System.Windows.Forms.Label();
+            this.lblaffichage = new System.Windows.Forms.Label();
             this.gbScore.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -91,7 +90,8 @@
             // 
             // pnlOpponentDraw
             // 
-            this.pnlOpponentDraw.BackColor = System.Drawing.SystemColors.ActiveCaption;
+            this.pnlOpponentDraw.BackColor = System.Drawing.SystemColors.Control;
+            this.pnlOpponentDraw.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("pnlOpponentDraw.BackgroundImage")));
             this.pnlOpponentDraw.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnlOpponentDraw.Enabled = false;
             this.pnlOpponentDraw.Location = new System.Drawing.Point(376, 97);
@@ -101,17 +101,18 @@
             // 
             // tmrAnimationLocal
             // 
-            this.tmrAnimationLocal.Interval = 25;
+            this.tmrAnimationLocal.Interval = 75;
             this.tmrAnimationLocal.Tick += new System.EventHandler(this.tmrAnimationLocal_Tick);
             // 
             // tmrAnimationOpponent
             // 
-            this.tmrAnimationOpponent.Interval = 25;
+            this.tmrAnimationOpponent.Interval = 75;
             this.tmrAnimationOpponent.Tick += new System.EventHandler(this.tmrAnimationOpponent_Tick);
             // 
             // pnlLocalDraw
             // 
-            this.pnlLocalDraw.BackColor = System.Drawing.SystemColors.ActiveCaption;
+            this.pnlLocalDraw.BackColor = System.Drawing.SystemColors.Control;
+            this.pnlLocalDraw.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("pnlLocalDraw.BackgroundImage")));
             this.pnlLocalDraw.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnlLocalDraw.Enabled = false;
             this.pnlLocalDraw.Location = new System.Drawing.Point(12, 148);
@@ -138,14 +139,13 @@
             // 
             // lblHisPoints
             // 
-            this.lblHisPoints.AutoSize = true;
             this.lblHisPoints.Font = new System.Drawing.Font("Arial", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblHisPoints.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
             this.lblHisPoints.Location = new System.Drawing.Point(72, 31);
             this.lblHisPoints.Name = "lblHisPoints";
             this.lblHisPoints.Size = new System.Drawing.Size(60, 42);
             this.lblHisPoints.TabIndex = 0;
-            this.lblHisPoints.Text = "00";
+            this.lblHisPoints.Text = "0";
             this.lblHisPoints.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // lblNone
@@ -160,14 +160,14 @@
             // 
             // lblMyPoints
             // 
-            this.lblMyPoints.AutoSize = true;
             this.lblMyPoints.Font = new System.Drawing.Font("Arial", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblMyPoints.ForeColor = System.Drawing.Color.Green;
             this.lblMyPoints.Location = new System.Drawing.Point(6, 31);
             this.lblMyPoints.Name = "lblMyPoints";
             this.lblMyPoints.Size = new System.Drawing.Size(60, 42);
             this.lblMyPoints.TabIndex = 0;
-            this.lblMyPoints.Text = "00";
+            this.lblMyPoints.Text = "0";
+            this.lblMyPoints.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // lblMyPointsPlus
             // 
@@ -180,32 +180,6 @@
             this.lblMyPointsPlus.Size = new System.Drawing.Size(73, 42);
             this.lblMyPointsPlus.TabIndex = 1;
             this.lblMyPointsPlus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // lblHisPointsPlus
-            // 
-            this.lblHisPointsPlus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this.lblHisPointsPlus.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.lblHisPointsPlus.Font = new System.Drawing.Font("Arial", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblHisPointsPlus.ForeColor = System.Drawing.Color.White;
-            this.lblHisPointsPlus.Location = new System.Drawing.Point(427, 12);
-            this.lblHisPointsPlus.Name = "lblHisPointsPlus";
-            this.lblHisPointsPlus.Size = new System.Drawing.Size(73, 45);
-            this.lblHisPointsPlus.TabIndex = 1;
-            this.lblHisPointsPlus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // lblBataille
-            // 
-            this.lblBataille.AutoSize = true;
-            this.lblBataille.BackColor = System.Drawing.Color.Blue;
-            this.lblBataille.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.lblBataille.Font = new System.Drawing.Font("Microsoft Sans Serif", 48F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblBataille.ForeColor = System.Drawing.Color.White;
-            this.lblBataille.Location = new System.Drawing.Point(78, 168);
-            this.lblBataille.Name = "lblBataille";
-            this.lblBataille.Size = new System.Drawing.Size(353, 75);
-            this.lblBataille.TabIndex = 7;
-            this.lblBataille.Text = "BATAILLE!";
-            this.lblBataille.Visible = false;
             // 
             // lblAlert
             // 
@@ -225,7 +199,7 @@
             // 
             this.lblMessage.BackColor = System.Drawing.Color.Blue;
             this.lblMessage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.lblMessage.Font = new System.Drawing.Font("Microsoft Sans Serif", 48F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblMessage.Font = new System.Drawing.Font("Microsoft Sans Serif", 42F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblMessage.ForeColor = System.Drawing.Color.White;
             this.lblMessage.Location = new System.Drawing.Point(12, 168);
             this.lblMessage.Name = "lblMessage";
@@ -272,26 +246,53 @@
             this.lblTitleHoldingPoints.Text = "BATTLE ZONE ";
             this.lblTitleHoldingPoints.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
-            // tmrWaiting4Player
+            // lblArrow
             // 
-            this.tmrWaiting4Player.Interval = 2000;
-            this.tmrWaiting4Player.Tick += new System.EventHandler(this.tmrWaiting4Player_Tick);
+            this.lblArrow.AutoSize = true;
+            this.lblArrow.BackColor = System.Drawing.Color.Transparent;
+            this.lblArrow.Font = new System.Drawing.Font("Microsoft Sans Serif", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblArrow.ForeColor = System.Drawing.Color.Blue;
+            this.lblArrow.Location = new System.Drawing.Point(190, 345);
+            this.lblArrow.Name = "lblArrow";
+            this.lblArrow.Size = new System.Drawing.Size(55, 42);
+            this.lblArrow.TabIndex = 11;
+            this.lblArrow.Text = "▼";
+            this.lblArrow.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
+            this.lblArrow.Visible = false;
             // 
-            // serialPort1
+            // lblHisPointsPlus
             // 
-            this.serialPort1.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.serialPort1_DataReceived);
+            this.lblHisPointsPlus.BackColor = System.Drawing.Color.DarkRed;
+            this.lblHisPointsPlus.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.lblHisPointsPlus.Font = new System.Drawing.Font("Arial", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblHisPointsPlus.ForeColor = System.Drawing.Color.White;
+            this.lblHisPointsPlus.Location = new System.Drawing.Point(427, 15);
+            this.lblHisPointsPlus.Name = "lblHisPointsPlus";
+            this.lblHisPointsPlus.Size = new System.Drawing.Size(73, 42);
+            this.lblHisPointsPlus.TabIndex = 1;
+            this.lblHisPointsPlus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblaffichage
+            // 
+            this.lblaffichage.AutoSize = true;
+            this.lblaffichage.Location = new System.Drawing.Point(288, 43);
+            this.lblaffichage.Name = "lblaffichage";
+            this.lblaffichage.Size = new System.Drawing.Size(35, 13);
+            this.lblaffichage.TabIndex = 12;
+            this.lblaffichage.Text = "label1";
             // 
             // frmGame
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(504, 401);
+            this.ClientSize = new System.Drawing.Size(512, 413);
+            this.Controls.Add(this.lblaffichage);
+            this.Controls.Add(this.lblArrow);
             this.Controls.Add(this.lblTitleHoldingPoints);
             this.Controls.Add(this.lblMessage);
             this.Controls.Add(this.lblAlert);
             this.Controls.Add(this.lblHisPointsPlusSymbol);
             this.Controls.Add(this.lblMyPointsPlusSymbol);
-            this.Controls.Add(this.lblBataille);
             this.Controls.Add(this.lblHisPointsPlus);
             this.Controls.Add(this.lblMyPointsPlus);
             this.Controls.Add(this.gbScore);
@@ -331,15 +332,14 @@
         private System.Windows.Forms.Label lblNone;
         private System.Windows.Forms.Label lblMyPoints;
         private System.Windows.Forms.Label lblMyPointsPlus;
-        private System.Windows.Forms.Label lblHisPointsPlus;
-        private System.Windows.Forms.Label lblBataille;
         private System.Windows.Forms.Label lblAlert;
         private System.Windows.Forms.Label lblMessage;
         private System.Windows.Forms.Label lblMyPointsPlusSymbol;
         private System.Windows.Forms.Label lblHisPointsPlusSymbol;
         private System.Windows.Forms.Label lblTitleHoldingPoints;
-        private System.Windows.Forms.Timer tmrWaiting4Player;
-        private System.IO.Ports.SerialPort serialPort1;
+        private System.Windows.Forms.Label lblArrow;
+        private System.Windows.Forms.Label lblHisPointsPlus;
+        private System.Windows.Forms.Label lblaffichage;
 
     }
 }

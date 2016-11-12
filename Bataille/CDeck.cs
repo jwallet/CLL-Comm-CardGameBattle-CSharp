@@ -15,7 +15,13 @@ namespace Bataille
         private Random m_RollTheDice;
         private int m_NumberToStart;
         private int m_CountNumberOfCardsPlayed;
+        private int m_BattleCardToBeat;
 
+        public int BattleCardToBeat
+        {
+            get { return m_BattleCardToBeat; }
+            set { value = m_BattleCardToBeat; }
+        }
         public int RolledNumber
         {
             get { return m_NumberToStart; }
@@ -32,6 +38,7 @@ namespace Bataille
             m_tDeck = new bool[4, 13];//les valeurs du deck seront à faux pour dire qu'ils n'ont pas été retirées
             m_RollTheDice = new Random();
             m_CountNumberOfCardsPlayed = 0;
+            m_BattleCardToBeat = -1;
             RollTheDice();
 		}
 
@@ -49,7 +56,7 @@ namespace Bataille
 
         public void RollTheDice()
         {
-            m_NumberToStart = m_RollTheDice.Next(1,30);
+            m_NumberToStart = m_RollTheDice.Next(1,5);
         }
 
         public int AnalyseRolledNumber_0Lose_1Win_2Tied(int OpponentRolledNumber)
@@ -71,7 +78,7 @@ namespace Bataille
 		public void Remove(SCard Card)
         {
             m_tDeck[Card.Symbol, Card.Number] = true;//carte retirée
-            m_CountNumberOfCardsPlayed++;
+            //m_CountNumberOfCardsPlayed++;
         }
 
         public void Draw(Graphics Graphic, SCard Card, float XMax, float YMax)
@@ -98,6 +105,7 @@ namespace Bataille
             CardText = CardNumber+CardSymbol;            
             Xc = (XMax/2)-2;
             Yc = (YMax/2)-2;
+            Remove(Card);
             if(Card.Symbol==0 || Card.Symbol == 1)
                 Brush = new SolidBrush(System.Drawing.Color.Red);
             else
@@ -225,27 +233,26 @@ namespace Bataille
                 }
             }
             //end symbol
-
+            
             FontToUse.Dispose();
             Brush.Dispose();
             Graphic.Dispose();
         }
         public void Random()
         {
-            Random r_Symbol = new Random();
-            Random r_Number = new Random();
-            int S = r_Symbol.Next(4);
-            int N = r_Number.Next(13);
-
-            while(m_tDeck[S,N]==true)//si la valeur est true, ca veut dire qu'elle a été retiré
+            Random Rnd = new Random();
+            int Valeur = Rnd.Next(1800);
+            int S = Valeur %4;
+            int N = Valeur %13;
+            int i = 0;
+            while (m_tDeck[S, N] == true)
             {
-                S = r_Symbol.Next(4);
-                N = r_Number.Next(13);
+                Valeur = Rnd.Next(1800);
+                S = Valeur % 4;
+                N = Valeur % 13;
+                i++;
             }
-
             m_MyCard = new SCard(S, N);
-
-            Remove(m_MyCard);
         }
 
         public bool this[int S, int N ]
@@ -273,21 +280,24 @@ namespace Bataille
 
         public string UpdateScoreByComparingMyCardTo(SCard OpponentCard)
         {
-            if(m_tDeck[OpponentCard.Symbol,OpponentCard.Number]==false)
+            if(m_tDeck[m_OpponentCard.Symbol,m_OpponentCard.Number]==false)
             {
-                m_tDeck[OpponentCard.Symbol, OpponentCard.Number] = true;
+                m_tDeck[m_OpponentCard.Symbol, m_OpponentCard.Number] = true;
+                //Remove(OpponentCard); //meme chose mais compte les cartes a 52, pas a 26
             }
-            if(m_MyCard.Number>OpponentCard.Number)
+            if(m_MyCard.Number>m_OpponentCard.Number||m_MyCard.Number==m_BattleCardToBeat)
             {
                 return "Win";
             }
             else
-                if(m_MyCard.Number<OpponentCard.Number)
+                if(m_MyCard.Number<m_OpponentCard.Number||m_OpponentCard.Number==m_BattleCardToBeat)
                 {
+
                     return "Lose";
                 }
                 else
                 {
+                    m_BattleCardToBeat = m_MyCard.Number;
                     return "Hold";
                 }
         }

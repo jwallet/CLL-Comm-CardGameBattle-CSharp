@@ -41,8 +41,13 @@ namespace Bataille
         }
         public void ON()
         {
-            if(!m_SP.IsOpen)
+            if (!m_SP.IsOpen)
                 m_SP.PortName = m_SelectedPortFromToolsForm;
+            else
+            {
+                OFF();
+                m_SP.PortName = m_SelectedPortFromToolsForm;
+            }
             try { m_SP.Open(); }
             catch (System.UnauthorizedAccessException)
             {
@@ -77,6 +82,7 @@ namespace Bataille
         public void ShowSettings()
         {
             frmTools Settings = new frmTools(m_tListGoesOnToolsForm, m_SelectedPortFromToolsForm);
+            m_SelectedPortFromToolsForm = "COM";
             Settings.ShowDialog();
             if (Settings.DialogResult == System.Windows.Forms.DialogResult.OK)
             {

@@ -81,7 +81,14 @@ namespace Bataille
         public bool Disconnect
         {
             get { return m_Disconnect; }
-            set { m_Disconnect = value; }
+            set 
+            {
+                if (value == true)
+                    LT0_ONLINE = 2;
+                else if (value == false)
+                    LT0_ONLINE = 1;
+                m_Disconnect = value; 
+            }
         }
 
         //DATA - MY ORDERS TO SEND
@@ -157,51 +164,6 @@ namespace Bataille
             get { return m_tDataCodeOrdersReceived[6]; }
             set { m_tDataCodeOrdersReceived[6] = value; }
         }
-        ////MANIPULER MON TABLEAU D'ORDRE
-        //public int this[int i] //pour clearer plus rapidement le tableau de tasks, acceder par m_Data[i]
-        //{
-        //    get
-        //    {
-        //        if (i >= 0 && i < m_tDataCodeOrders.Length)
-        //        {
-        //            return m_tDataCodeOrders[i];
-        //        }
-        //        else
-        //        {
-        //            return -1;
-        //        }
-        //    }
-        //    set
-        //    {
-        //        if (value >= 0 && value <= 255)
-        //        {
-        //            m_tDataCodeOrders[i] = value;
-        //        }
-        //    }
-        //}
-        ////MANIPULER TABLEAU DES TACHES DE L'OPPOSANT
-        //public int this[int i] //pour clearer plus rapidement le tableau de tasks, acceder par m_Data[i]
-        //{
-        //    get
-        //    {
-        //        if (i >= 0 && i < m_tDataCodeTasks.Length)
-        //        {
-        //            return m_tDataCodeTasks[i];
-        //        }
-        //        else
-        //        {
-        //            return -1;
-        //        }
-        //    }
-        //    set
-        //    {
-        //        if(value>=0&&value<=255)
-        //        {
-        //            m_tDataCodeTasks[i] = value;
-        //        }
-        //    }
-        //}
-       
 
         public CData()
         {
@@ -215,86 +177,54 @@ namespace Bataille
         public void DataToSend_Builder()
         {
             int i, CheckSum = 0;
-            m_DataToSend = "?";
+            m_DataToSend = "$";
             for (i = 0; i < m_tDataCodeOrdersSent.Length; i++)
             {
-                m_DataToSend += (char)(m_tDataCodeOrdersSent[i] + 65);
-                //m_tDataCodeOrdersSent[i] = 0; //reset value
+                m_DataToSend += (char)(m_tDataCodeOrdersSent[i] + 48);
                 CheckSum += m_tDataCodeOrdersSent[i];
             }
-            m_DataToSend += ":";
-            m_DataToSend += (char)(CheckSum + 65);
-            m_DataToSend += "?";
+            m_DataToSend += "#";
+            m_DataToSend += (char)(CheckSum + 48);
+            m_DataToSend += "$";
         }
 
         public void DataReceived_Analyze()
         {
             int i, j, CheckSum_Calculated = 0, CheckSum_Found = 0;
+            string DataCurrentlyAnalyzed = "";//it will delete the order from datareceived, once completed
             i = 0;
-            //bool DataToSend_OnProgress = false;
-            ////verifier si tous sont a zero, sinon m_tDATACODEINDEXTASKSANDORDERS n'a pas ete sender encore
-            //for (i = 0; i < m_tDataCodeOrdersReceived.Length && DataToSend_OnProgress == true; i++)
-            //{
-            //    if (m_tDataCodeOrdersReceived[i] != 0)
-            //        DataToSend_OnProgress = true;
-            //}
-            //if (DataToSend_OnProgress == true)
-            //{
-            //    DataToSend_Builder();
-            //    //send data
-            //    return false;
-            //}
-            //else //go for it, nothing is waiting
-            //{
-            if (DataReceived != "")
+            if (m_DataReceived != "" && m_DataReceived.Length==11)
             {
-                if ((OT0_ONLINE==0)||(OT0_ONLINE==1&&DataReceived[2]>'A'))
+                if (m_DataReceived[i] == '$')//DataReceived = ?DAALAEAZAB:CH?
                 {
-                    if (m_DataReceived[i] == '?')//DataReceived = ?DAALAEAZAB:CH?
+                    DataCurrentlyAnalyzed = "$";
+                    for (i = i + 1; m_DataReceived[i] != '#'; i++)
                     {
-                        for (i = i + 1; m_DataReceived[i] != ':'; i++)
+                        if (m_DataReceived[i] >= 48)
                         {
-                            if (m_DataReceived[i] >= 65 && m_DataReceived[i] <= 90)
-                            {
-                                m_tDataCodeOrdersReceived[i - 1] = m_DataReceived[i] - 65; //DataReceived = DAALAEAZAB, convert to 3,0,0,11,0,4,0,26,0,1
-                                CheckSum_Calculated += m_DataReceived[i] - 65;
-                            }
-                            else
-                            {
-                                m_tDataCodeOrdersReceived[i - 1] = 0;//can't convert letter to numeral order, must be between A and Z. 0 and 26.
-                            }
+                            m_tDataCodeOrdersReceived[i - 1] = m_DataReceived[i] - 48; //DataReceived = DAALAEAZAB, convert to 3,0,0,11,0,4,0,26,0,1
+                            CheckSum_Calculated += m_DataReceived[i] - 48;
                         }
-                        for (j = i + 1; m_DataReceived[j] != '?'; j++)
+                        else
                         {
-                            CheckSum_Found += m_DataReceived[j] - 65;
+                            m_tDataCodeOrdersReceived[i - 1] = 0;//can't convert
                         }
+                        DataCurrentlyAnalyzed += m_DataReceived[i];
                     }
-                    //else
-                    //{
-                    //    return false;//return false if '?' was not found at index[0]
-                    //}
-                    if (CheckSum_Calculated != CheckSum_Found)
+                    DataCurrentlyAnalyzed += m_DataReceived[i];
+                    for (j = i + 1; m_DataReceived[j] != '$'; j++)
                     {
-                        for (int clear = 0; clear < m_tDataCodeOrdersReceived.Length; clear++)
-                        {
-                            m_tDataCodeOrdersReceived[clear] = 0;//clear content of m_tDataCode
-                        }
-                        //return false;//return false if both checksum are not equal
+                        CheckSum_Found += m_DataReceived[j] - 48;
+                        DataCurrentlyAnalyzed += m_DataReceived[j];
                     }
-                    //else
-                    //{
-                    //    return true;//otherwise return true and we can use m_tDataCode..
-                    //}
-
+                    DataCurrentlyAnalyzed += m_DataReceived[j];
                 }
-                else
+                if (CheckSum_Calculated != CheckSum_Found)
                 {
-                    while(DataReceived.Contains("?BAAAAAA:B?"))
-                        DataReceived = DataReceived.Remove(0,11);
+                    m_tDataCodeOrdersReceived[0] = 0;//create error
                 }
-                //return false;
+                m_DataReceived = m_DataReceived.Replace(DataCurrentlyAnalyzed, null);
             }
-            //return false;
         }
     }
 }
